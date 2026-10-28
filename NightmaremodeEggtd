@@ -1,0 +1,56 @@
+-- ============================================================
+-- MATCH START AUTO-QUEUE SCRIPT
+-- ============================================================
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+
+-- 1. Wait for game and character to fully load
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+char:WaitForChild("HumanoidRootPart", 15)
+
+-- 2. Wait 5 more seconds after loading
+task.wait(5)
+
+print("[Match Auto-Queue] Initialized. Monitoring workspace.Lobby...")
+
+-- 3. Main Loop
+while true do
+    if workspace:FindFirstChild("Lobby") then
+        -- Wait 10 more seconds after finding Lobby
+        task.wait(10)
+        
+        -- Re-verify Lobby still exists before proceeding
+        if workspace:FindFirstChild("Lobby") then
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                -- Teleport to position (-396, 2, -51)
+                hrp.CFrame = CFrame.new(-396, 2, -51)
+                
+                -- Wait 1 second
+                task.wait(1)
+                
+                -- Fire the MatchStartRequest remote
+                pcall(function()
+                    local remotes = ReplicatedStorage:WaitForChild("Main"):WaitForChild("Remotes")
+                    local matchStart = remotes:WaitForChild("MatchStartRequest")
+                    
+                    local args = {
+                        [1] = "Start",
+                        n = 1,
+                    }
+                    matchStart:FireServer(unpack(args, 1, args.n or #args))
+                    print("[Match Auto-Queue] Successfully teleported and fired MatchStartRequest!")
+                end)
+            end
+        end
+    else
+        -- If workspace.Lobby does not exist, wait a couple of seconds before checking again
+        task.wait(2)
+    end
+end
