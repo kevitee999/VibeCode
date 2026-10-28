@@ -29,8 +29,8 @@ while true do
         if workspace:FindFirstChild("Lobby") then
             local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
             if hrp then
-                -- Teleport to position (-396, 2, -51)
-                hrp.CFrame = CFrame.new(-396, 2, -51)
+                -- Teleport to position (-396, 2, -37)
+                hrp.CFrame = CFrame.new(-396, 2, -37)
                 
                 -- Wait 1 second
                 task.wait(1)
