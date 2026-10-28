@@ -1,5 +1,5 @@
 -- ============================================================
--- MATCH START AUTO-QUEUE SCRIPT
+-- MATCH START AUTO-QUEUE SCRIPT (Mobile Optimized & Loop Retry)
 -- ============================================================
 
 local Players = game:GetService("Players")
@@ -11,46 +11,53 @@ if not game:IsLoaded() then
     game.Loaded:Wait()
 end
 
-local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-char:WaitForChild("HumanoidRootPart", 15)
+-- Helper function to ensure character & HRP exist on mobile
+local function getHRP()
+    local char = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    return char:WaitForChild("HumanoidRootPart", 15)
+end
 
--- 2. Wait 5 more seconds after loading
+local hrp = getHRP()
+
+-- 2. Initial wait after loading
 task.wait(5)
 
-print("[Match Auto-Queue] Initialized. Monitoring workspace.Lobby...")
+print("[Match Auto-Queue] Initialized (Mobile Mode). Monitoring workspace.Lobby...")
 
--- 3. Main Loop
+-- 3. Main Loop (Runs & Re-checks every 15 seconds if Lobby exists)
 while true do
     if workspace:FindFirstChild("Lobby") then
-        -- Wait 10 more seconds after finding Lobby
-        task.wait(10)
+        local currentHRP = getHRP()
         
-        -- Re-verify Lobby still exists before proceeding
-        if workspace:FindFirstChild("Lobby") then
-            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                -- Teleport to position (-396, 2, -37)
-                hrp.CFrame = CFrame.new(-396, 2, -37)
-                
-                -- Wait 1 second
-                task.wait(1)
-                
-                -- Fire the MatchStartRequest remote
+        if currentHRP then
+            -- Safe Teleport with Physics Reset (Bypasses Mobile Rubberbanding)
+            currentHRP.AssemblyLinearVelocity = Vector3.zero
+            currentHRP.AssemblyAngularVelocity = Vector3.zero
+            currentHRP.CFrame = CFrame.new(-396, 2, -37)
+            
+            -- Wait 1 second after CFrame positioning
+            task.wait(1)
+            
+            -- Re-verify Lobby still exists after the wait before firing remote
+            if workspace:FindFirstChild("Lobby") then
                 pcall(function()
-                    local remotes = ReplicatedStorage:WaitForChild("Main"):WaitForChild("Remotes")
-                    local matchStart = remotes:WaitForChild("MatchStartRequest")
+                    local remotes = ReplicatedStorage:WaitForChild("Main", 5):WaitForChild("Remotes", 5)
+                    local matchStart = remotes:WaitForChild("MatchStartRequest", 5)
                     
                     local args = {
                         [1] = "Start",
                         n = 1,
                     }
                     matchStart:FireServer(unpack(args, 1, args.n or #args))
-                    print("[Match Auto-Queue] Successfully teleported and fired MatchStartRequest!")
+                    print("[Match Auto-Queue] Teleported to (-396, 2, -37) and fired MatchStartRequest!")
                 end)
             end
         end
+        
+        -- Wait 15 seconds before checking & re-triggering if still in Lobby
+        task.wait(15)
     else
-        -- If workspace.Lobby does not exist, wait a couple of seconds before checking again
-        task.wait(2)
+        -- If workspace.Lobby is gone (game started), check back every 2 seconds
+        task.wait(5)
     end
 end
